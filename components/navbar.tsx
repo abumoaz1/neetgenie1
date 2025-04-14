@@ -62,11 +62,11 @@ export default function Navbar() {
         </nav>
         
         <div className="hidden md:flex items-center gap-4">
-          <Button variant="ghost" size="sm" className="hover:text-blue-600 transition-colors">
-            Log in
+          <Button variant="ghost" size="sm" className="hover:text-blue-600 transition-colors" asChild>
+            <Link href="/login">Log in</Link>
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 transition-all duration-300 hover:shadow-lg hover:shadow-blue-600/20" size="sm">
-            Sign up
+          <Button className="bg-blue-600 hover:bg-blue-700 transition-all duration-300 hover:shadow-lg hover:shadow-blue-600/20" size="sm" asChild>
+            <Link href="/signup">Sign up</Link>
           </Button>
         </div>
         
