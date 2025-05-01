@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { endpoints, apiRequest } from "@/lib/baseUrl";
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [apiError, setApiError] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -58,17 +60,40 @@ export default function LoginPage() {
     return valid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
       setIsLoading(true);
+      setApiError("");
       
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
+      try {
+        const response = await apiRequest.post(endpoints.login, {
+          email: formData.email,
+          password: formData.password
+        });
+        
+        // Store the token in localStorage
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        
+        // If user chose to be remembered, store the timestamp 
+        if (formData.rememberMe) {
+          localStorage.setItem('remember_expiry', 
+            String(Date.now() + 30 * 24 * 60 * 60 * 1000)); // 30 days
+        }
+        
         router.push("/dashboard");
-      }, 1500);
+      } catch (error) {
+        console.error("Login error:", error);
+        setApiError(
+          error instanceof Error 
+            ? error.message 
+            : "Login failed. Please check your credentials and try again."
+        );
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -228,6 +253,7 @@ export default function LoginPage() {
                       </div>
                     )}
                   </Button>
+                  {apiError && <p className="text-sm text-red-500 mt-2">{apiError}</p>}
                 </div>
               </form>
             </CardContent>
@@ -279,4 +305,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-} 
+}

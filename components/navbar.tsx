@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 export default function Navbar() {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,6 +29,54 @@ export default function Navbar() {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  // Check if user is logged in
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token');
+        const userString = localStorage.getItem('user');
+        
+        if (token) {
+          setIsLoggedIn(true);
+          
+          if (userString) {
+            try {
+              const user = JSON.parse(userString);
+              setUserName(user.name || '');
+            } catch (error) {
+              console.error('Error parsing user data', error);
+            }
+          }
+        } else {
+          setIsLoggedIn(false);
+          setUserName('');
+        }
+      }
+    };
+
+    checkAuthStatus();
+    
+    // Listen for storage events (for multi-tab support)
+    window.addEventListener('storage', checkAuthStatus);
+    return () => {
+      window.removeEventListener('storage', checkAuthStatus);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    // Clear auth data from localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('remember_expiry');
+    
+    // Update state
+    setIsLoggedIn(false);
+    setUserName('');
+    
+    // Redirect to home page
+    router.push('/');
+  };
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -62,12 +114,29 @@ export default function Navbar() {
         </nav>
         
         <div className="hidden md:flex items-center gap-4">
-          <Button variant="ghost" size="sm" className="hover:text-blue-600 transition-colors" asChild>
-            <Link href="/login">Log in</Link>
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 transition-all duration-300 hover:shadow-lg hover:shadow-blue-600/20" size="sm" asChild>
-            <Link href="/signup">Sign up</Link>
-          </Button>
+          {isLoggedIn ? (
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium">Hi, {userName || 'User'}</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="hover:text-red-600 transition-colors flex gap-1 items-center"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" className="hover:text-blue-600 transition-colors" asChild>
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700 transition-all duration-300 hover:shadow-lg hover:shadow-blue-600/20" size="sm" asChild>
+                <Link href="/signup">Sign up</Link>
+              </Button>
+            </>
+          )}
         </div>
         
         {/* Mobile Navigation */}
@@ -111,16 +180,32 @@ export default function Navbar() {
                   ))}
                 </nav>
                 <div className="flex flex-col w-full gap-3 mt-8">
-                  <SheetClose asChild>
-                    <Button variant="outline" size="lg" className="w-full transition-all duration-300 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" asChild>
-                      <Link href="/login">Log in</Link>
-                    </Button>
-                  </SheetClose>
-                  <SheetClose asChild>
-                    <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 transition-all duration-300 hover:shadow-lg hover:shadow-blue-600/20 hover:translate-y-[-2px]" asChild>
-                      <Link href="/signup">Sign up</Link>
-                    </Button>
-                  </SheetClose>
+                  {isLoggedIn ? (
+                    <SheetClose asChild>
+                      <Button 
+                        variant="outline" 
+                        size="lg" 
+                        className="w-full transition-all duration-300 hover:border-red-200 hover:bg-red-50 hover:text-red-600 flex gap-2 items-center justify-center"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                      </Button>
+                    </SheetClose>
+                  ) : (
+                    <>
+                      <SheetClose asChild>
+                        <Button variant="outline" size="lg" className="w-full transition-all duration-300 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" asChild>
+                          <Link href="/login">Log in</Link>
+                        </Button>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 transition-all duration-300 hover:shadow-lg hover:shadow-blue-600/20 hover:translate-y-[-2px]" asChild>
+                          <Link href="/signup">Sign up</Link>
+                        </Button>
+                      </SheetClose>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -129,4 +214,4 @@ export default function Navbar() {
       </div>
     </header>
   );
-} 
+}

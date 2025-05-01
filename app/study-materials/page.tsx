@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,16 +10,52 @@ import {
   Video, 
   ChevronRight,
   Search,
-  Clock
+  Calendar,
+  ExternalLink,
+  User
 } from "lucide-react";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ScrollToTop from "@/components/scroll-to-top";
 import { AIAssistant } from "@/components/ai-assistant";
 import { useStudyMaterialsHook } from "@/hooks/use-study-materials";
+import { VideoPlayer } from "@/components/video-player";
+import styles from "./styles/markdown.module.css";
+import { useRouter } from "next/navigation";
 
 export default function StudyMaterialsPage() {
-  const { materials, filters, setFilters, isLoading } = useStudyMaterialsHook();
+  const {
+    materials,
+    filters,
+    setFilters,
+    isLoading,
+    error,
+    fetchMaterialById,
+    fetchMaterialContent,
+    downloadMaterial,
+    materialContent,
+    selectedMaterial,
+  } = useStudyMaterialsHook();
+
+  const router = useRouter();
+
+  const handleViewMaterial = (materialId: number, materialType: string) => {
+    if (materialType === 'pdf') {
+      downloadMaterial(materialId);
+    } else {
+      // Navigate to the dedicated study material page
+      router.push(`/study-materials/${materialId}`);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric'
+    });
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -51,7 +87,7 @@ export default function StudyMaterialsPage() {
                 variant={filters.type === 'all' ? 'default' : 'outline'}
                 onClick={() => setFilters({ type: 'all' })}
               >
-                All Subjects
+                All Types
               </Button>
               <Button 
                 variant={filters.type === 'notes' ? 'default' : 'outline'}
@@ -75,68 +111,132 @@ export default function StudyMaterialsPage() {
                 <div className="flex items-center justify-center h-64">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
+              ) : error ? (
+                <Card className="p-6">
+                  <div className="text-center py-8">
+                    <p className="text-red-500 mb-2">Error loading study materials</p>
+                    <p className="text-muted-foreground">{error}</p>
+                  </div>
+                </Card>
               ) : materials.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">No study materials found.</p>
                 </div>
               ) : (
-                materials.map((material: { 
-                  id: number;
-                  title: string;
-                  subject: string;
-                  type: string;
-                  description: string;
-                  pages?: number;
-                  duration?: string;
-                  rating: number;
-                }) => (
+                materials.map((material) => (
                   <Card key={material.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start gap-4">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          {material.type === "video" ? (
-                            <Video className="h-6 w-6 text-primary" />
+                    <CardContent className="p-4">
+                      <div className="flex flex-row gap-4">
+                        {/* Thumbnail or Icon */}
+                        <div className="shrink-0">
+                          {material.material_type === "video" && material.content_url ? (
+                            <VideoPlayer 
+                              videoUrl={material.content_url} 
+                              title={material.title}
+                              thumbnail={material.thumbnail_url || undefined}
+                              compact={true}
+                            />
                           ) : (
-                            <FileText className="h-6 w-6 text-primary" />
+                            <div className="w-32 h-24 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <FileText className="h-8 w-8 text-primary" />
+                            </div>
                           )}
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-medium">{material.title}</h3>
-                            <Badge variant="secondary">{material.subject}</Badge>
+                        
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          {/* Header with title, subject, and chapter */}
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-medium text-base truncate">{material.title}</h3>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
+                          
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            <Badge variant="secondary" className="text-xs">{material.subject}</Badge>
+                            <Badge variant="outline" className="text-xs">{material.chapter}</Badge>
+                            <Badge variant={material.material_type === "video" ? "default" : "secondary"} className="text-xs">
+                              {material.material_type === "video" ? "Video" : "Notes"}
+                            </Badge>
+                          </div>
+                          
+                          {/* Description */}
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                             {material.description}
                           </p>
-                          <div className="flex items-center gap-4 mt-3">
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              {material.type === "video" ? (
-                                <>
-                                  <Clock className="h-4 w-4" />
-                                  <span>{material.duration}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <BookOpen className="h-4 w-4" />
-                                  <span>{material.pages} pages</span>
-                                </>
-                              )}
+                          
+                          {/* Footer with metadata */}
+                          <div className="flex items-center justify-between flex-wrap mt-auto">
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                <span>{formatDate(material.created_at)}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                <span>{material.uploader.name}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <span>★</span>
-                              <span>{material.rating}</span>
-                            </div>
+                            
+                            {/* Action button */}
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => handleViewMaterial(material.id, material.material_type)}
+                            >
+                              {material.material_type === 'pdf' ? 'Download PDF' : 'View Content'}
+                              <ChevronRight className="h-3 w-3" />
+                            </Button>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon">
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>
                 ))
               )}
             </div>
+
+            {/* Selected Material Content */}
+            {selectedMaterial && materialContent && (
+              <div className="lg:col-span-1">
+                <Card>
+                  <CardContent className="p-4">
+                    <h3 className="font-medium text-lg mb-2">{selectedMaterial.title}</h3>
+                    <div className="text-sm text-muted-foreground mb-4">
+                      {selectedMaterial.description}
+                    </div>
+                    {/* Notes (MDX), Summary, and Tip content */}
+                    {(selectedMaterial.material_type === 'note' || 
+                      selectedMaterial.material_type === 'summary' || 
+                      selectedMaterial.material_type === 'tip') && (
+                      <div>
+                        {/* Render MDX content with proper styling using CSS module */}
+                        <div 
+                          dangerouslySetInnerHTML={{ __html: materialContent }} 
+                          className={styles["markdown-content"]}
+                        />
+                      </div>
+                    )}
+                    {/* Video content */}
+                    {selectedMaterial.material_type === 'video' && (
+                      <VideoPlayer videoUrl={materialContent} title={selectedMaterial.title} />
+                    )}
+                    {/* PDF content - display as a preview or download link */}
+                    {selectedMaterial.material_type === 'pdf' && (
+                      <div className="text-center p-4 border rounded-md">
+                        <FileText className="h-12 w-12 mx-auto mb-2 text-primary" />
+                        <p className="mb-4">PDF document available for download</p>
+                        <Button 
+                          onClick={() => downloadMaterial(selectedMaterial.id)}
+                          variant="outline"
+                        >
+                          Download PDF
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* AI Assistant */}
             <div className="lg:col-span-1">
@@ -149,4 +249,4 @@ export default function StudyMaterialsPage() {
       <ScrollToTop />
     </div>
   );
-} 
+}

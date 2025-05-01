@@ -2,13 +2,21 @@ export interface StudyMaterial {
   id: number;
   title: string;
   subject: string;
-  type: 'notes' | 'video';
+  chapter: string;
+  material_type: 'note' | 'video';
   description: string;
-  pages?: number;
-  duration?: string;
-  rating: number;
-  createdAt: Date;
-  updatedAt: Date;
+  text_content: string | null;
+  content_url: string | null;
+  thumbnail_url: string | null;
+  created_at: string;
+  updated_at: string;
+  uploader: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    created_at: string;
+  }
 }
 
 export interface Message {
@@ -65,4 +73,4 @@ export interface Test {
   difficulty: 'easy' | 'medium' | 'hard';
   createdAt: Date;
   updatedAt: Date;
-} 
+}

@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { endpoints, apiRequest } from "@/lib/baseUrl";
 
 export default function SignupPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [apiError, setApiError] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -70,17 +72,35 @@ export default function SignupPage() {
     return valid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
       setIsLoading(true);
+      setApiError("");
       
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
+      try {
+        const response = await apiRequest.post(endpoints.signup, {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        });
+        
+        // Store the token in localStorage
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        
         router.push("/dashboard");
-      }, 1500);
+      } catch (error) {
+        console.error("Signup error:", error);
+        setApiError(
+          error instanceof Error 
+            ? error.message 
+            : "Failed to create account. Please try again."
+        );
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -217,6 +237,8 @@ export default function SignupPage() {
                     )}
                   </div>
                   
+                  {apiError && <p className="text-sm text-red-500">{apiError}</p>}
+                  
                   <Button 
                     type="submit" 
                     className="w-full bg-blue-600 hover:bg-blue-700"
@@ -255,4 +277,4 @@ export default function SignupPage() {
       </div>
     </div>
   );
-} 
+}

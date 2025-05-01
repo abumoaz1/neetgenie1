@@ -14,12 +14,33 @@ import {
   GraduationCap,
   Brain,
   Microscope,
-  FlaskRound,
+  FlaskConical,
   Calculator,
   Atom,
   Leaf,
   Heart,
-  Activity
+  Activity,
+  TestTube,
+  Flower2,
+  TreeDeciduous,
+  Sprout,
+  Droplets,
+  PawPrint,
+  Rabbit,
+  Bug,
+  Feather,
+  Orbit,
+  CircleDot,
+  Telescope,
+  Scale,
+  Zap,
+  Eye,
+  LucideEye,
+  Lightbulb,
+  Pill,
+  Syringe,
+  Droplet,
+  FlaskRound
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -28,12 +49,25 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ScrollToTop from "@/components/scroll-to-top";
 
+// Define icon sets for different subjects
+const chemistryIcons = [FlaskConical, TestTube, Atom, Dna, Droplet, FlaskRound];
+const biologyIcons = [Leaf, Dna, Heart, Microscope, Brain];
+const botanyIcons = [Leaf, Flower2, TreeDeciduous, Sprout, Droplets];
+const zoologyIcons = [PawPrint, Rabbit, Bug, Microscope, Feather];
+const physicsIcons = [Atom, Orbit, CircleDot, Telescope, Scale];
+const pharmaIcons = [Pill, Dna, Droplet, FlaskConical, Syringe];
+const neuroIcons = [Brain, Zap, Activity, Eye, LucideEye];
+const generalIcons = [GraduationCap, BookOpen, Lightbulb, FileText, BookMarked];
+
+// Function to pick a random icon from an array
+const pickRandomIcon = (icons) => icons[Math.floor(Math.random() * icons.length)];
+
 // Mock study materials data
 const studyMaterials = {
   subjects: [
     {
       name: "Physics",
-      icon: Atom,
+      icon: pickRandomIcon(physicsIcons),
       color: "text-blue-500",
       topics: [
         {
@@ -58,7 +92,7 @@ const studyMaterials = {
     },
     {
       name: "Chemistry",
-      icon: FlaskRound,
+      icon: pickRandomIcon(chemistryIcons),
       color: "text-green-500",
       topics: [
         {
@@ -83,7 +117,7 @@ const studyMaterials = {
     },
     {
       name: "Biology",
-      icon: Microscope,
+      icon: pickRandomIcon(biologyIcons),
       color: "text-purple-500",
       topics: [
         {
@@ -102,6 +136,54 @@ const studyMaterials = {
             { type: "Notes", count: 12 },
             { type: "Videos", count: 7 },
             { type: "Practice", count: 15 }
+          ]
+        }
+      ]
+    },
+    {
+      name: "Botany",
+      icon: pickRandomIcon(botanyIcons),
+      color: "text-teal-500",
+      topics: [
+        {
+          name: "Plant Morphology",
+          description: "Structure and organization of plants",
+          resources: [
+            { type: "Notes", count: 10 },
+            { type: "Videos", count: 6 },
+            { type: "Practice", count: 8 }
+          ]
+        }
+      ]
+    },
+    {
+      name: "Zoology",
+      icon: pickRandomIcon(zoologyIcons),
+      color: "text-pink-500",
+      topics: [
+        {
+          name: "Animal Physiology",
+          description: "Functions and processes in animals",
+          resources: [
+            { type: "Notes", count: 14 },
+            { type: "Videos", count: 8 },
+            { type: "Practice", count: 12 }
+          ]
+        }
+      ]
+    },
+    {
+      name: "Pharmacology",
+      icon: pickRandomIcon(pharmaIcons),
+      color: "text-cyan-500",
+      topics: [
+        {
+          name: "Drug Actions",
+          description: "How medicines interact with body systems",
+          resources: [
+            { type: "Notes", count: 9 },
+            { type: "Videos", count: 5 },
+            { type: "Practice", count: 7 }
           ]
         }
       ]
@@ -243,4 +325,4 @@ export default function ClientStudyMaterialsPage() {
       <ScrollToTop />
     </div>
   );
-} 
+}
