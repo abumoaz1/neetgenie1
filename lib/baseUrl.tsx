@@ -53,7 +53,17 @@ export const endpoints = {
   getSubjectAnalytics: (subject: string) => `${baseUrl}/user/analytics/subject/${subject}`,
   getWeakAreasAnalytics: `${baseUrl}/user/analytics/weak-areas`,
   getProgressAnalytics: `${baseUrl}/user/analytics/progress`,
-  getAdminAnalytics: `${baseUrl}/admin/analytics`
+  getAdminAnalytics: `${baseUrl}/admin/analytics`,
+  
+  // AI Assistant
+  askAssistant: `${baseUrl}/study-plan/ask-assistant`,
+
+  // Study Plans
+  generateStudyPlan: `${baseUrl}/study-plan/generate`,
+  getUserStudyPlans: `${baseUrl}/study-plan/user-plans`,
+  getAllStudyPlans: `${baseUrl}/study-plan/plans`,
+  getStudyPlanById: (planId: number | string) => `${baseUrl}/study-plan/plans/${planId}`,
+  deleteStudyPlan: (planId: number | string) => `${baseUrl}/study-plan/plans/${planId}`,
 };
 
 // Helper function to fetch data with authorization header

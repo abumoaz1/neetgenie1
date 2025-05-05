@@ -251,6 +251,7 @@ export default function AnalyticsPage() {
                         <TabsTrigger value="time">Time Analysis</TabsTrigger>
                         <TabsTrigger value="weak-areas">Weak Areas</TabsTrigger>
                         <TabsTrigger value="progress">Progress</TabsTrigger>
+                        <TabsTrigger value="topic-accuracy">Topic Accuracy</TabsTrigger>
                       </TabsList>
                       
                       {/* Performance Trends Tab */}
@@ -585,6 +586,12 @@ export default function AnalyticsPage() {
                                             {resource.type === 'quiz' && (
                                               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
                                             )}
+                                            {resource.type === 'note' && (
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M12 11h1v4h-1"/><path d="M12 8h.01"/><circle cx="12" cy="12" r="10"/></svg>
+                                            )}
+                                            {resource.type === 'pdf' && (
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500"><path d="M5 23h14"/><path d="M8 6a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1Z"/><path d="M11 11v4a2 2 0 0 0 4 0v-1"/><path d="M11 11V7.5a2.5 2.5 0 0 1 5 0V11"/><path d="M4 7a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/></svg>
+                                            )}
                                           </div>
                                           <div>
                                             <a 
@@ -599,6 +606,14 @@ export default function AnalyticsPage() {
                                           </div>
                                         </div>
                                       ))}
+                                    </div>
+                                    
+                                    <div className="bg-slate-50 p-3 rounded-md mt-4">
+                                      <h4 className="font-medium text-sm mb-2 text-slate-700">Common Mistakes</h4>
+                                      <p className="text-sm text-slate-600">
+                                        Students often struggle with {area.subtopic} due to conceptual misunderstandings. 
+                                        Focus on understanding the fundamental principles rather than memorizing formulas.
+                                      </p>
                                     </div>
                                   </CardContent>
                                 </Card>
@@ -702,9 +717,149 @@ export default function AnalyticsPage() {
                           </Card>
                         </div>
                       </TabsContent>
+                      
+                      {/* New Topic Accuracy Tab */}
+                      <TabsContent value="topic-accuracy" className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {['Physics', 'Chemistry', 'Biology'].map((subject) => (
+                            <Card key={subject} className="overflow-hidden">
+                              <CardHeader className={`text-white ${
+                                subject === 'Physics' ? 'bg-blue-600' :
+                                subject === 'Chemistry' ? 'bg-emerald-600' : 'bg-amber-600'
+                              }`}>
+                                <CardTitle className="text-lg">{subject} Topics</CardTitle>
+                                <CardDescription className="text-white/80">Topic-wise accuracy breakdown</CardDescription>
+                              </CardHeader>
+                              <CardContent className="pt-6">
+                                <ScrollArea className="h-[300px] pr-4">
+                                  <div className="space-y-5">
+                                    {analyticsData.subject_analysis.sub_topics[subject.toLowerCase()]?.map((topic, idx) => (
+                                      <div key={idx}>
+                                        <div className="flex justify-between mb-1">
+                                          <span className="text-sm font-medium">{topic.name}</span>
+                                          <span className={`text-xs font-medium ${
+                                            topic.mastery >= 80 ? 'text-green-600' :
+                                            topic.mastery >= 60 ? 'text-amber-600' : 'text-red-600'
+                                          }`}>
+                                            {topic.mastery}%
+                                          </span>
+                                        </div>
+                                        <Progress 
+                                          value={topic.mastery} 
+                                          className={`h-2 ${
+                                            topic.mastery >= 80 ? 'bg-green-100' :
+                                            topic.mastery >= 60 ? 'bg-amber-100' : 'bg-red-100'
+                                          }`}
+                                        />
+                                      </div>
+                                    )) || (
+                                      <div className="text-center py-8 text-muted-foreground">
+                                        No {subject.toLowerCase()} data available yet
+                                      </div>
+                                    )}
+                                  </div>
+                                </ScrollArea>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </TabsContent>
                     </Tabs>
                   </CardContent>
                 </Card>
+                
+                {/* Additional Performance Insights Section */}
+                <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+                  <Card className="col-span-1 lg:col-span-2">
+                    <CardHeader>
+                      <CardTitle>Performance Insights</CardTitle>
+                      <CardDescription>Key observations and improvement suggestions</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="p-4 bg-blue-50 rounded-lg">
+                          <h3 className="font-medium text-blue-800 flex items-center gap-2 mb-2">
+                            <TrendingUp className="h-4 w-4" />
+                            Overall Performance
+                          </h3>
+                          <p className="text-sm text-blue-700">
+                            Your overall score is <span className="font-semibold">{analyticsData.overview.overall_score}%</span>. 
+                            You've completed <span className="font-semibold">{analyticsData.overview.tests_completed}</span> tests 
+                            with <span className="font-semibold">{analyticsData.overview.recent_improvement}%</span> recent improvement.
+                          </p>
+                        </div>
+                        
+                        <div className="p-4 bg-emerald-50 rounded-lg">
+                          <h3 className="font-medium text-emerald-800 flex items-center gap-2 mb-2">
+                            <Medal className="h-4 w-4" />
+                            Strengths
+                          </h3>
+                          <p className="text-sm text-emerald-700">
+                            You excel in topics like {analyticsData.overview.strengths.slice(0, 3).join(', ')}. 
+                            Continue practicing these areas to maintain proficiency.
+                          </p>
+                        </div>
+                        
+                        <div className="p-4 bg-amber-50 rounded-lg">
+                          <h3 className="font-medium text-amber-800 flex items-center gap-2 mb-2">
+                            <Brain className="h-4 w-4" />
+                            Areas to Improve
+                          </h3>
+                          <p className="text-sm text-amber-700">
+                            Focus on improving {analyticsData.overview.weaknesses.slice(0, 3).join(', ')}. 
+                            Check the recommended resources in the "Weak Areas" tab.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Study Efficiency</CardTitle>
+                      <CardDescription>Make the most of your study time</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        <div>
+                          <div className="flex justify-between mb-2">
+                            <h3 className="text-sm font-medium">Efficiency Score</h3>
+                            <span className="text-sm font-medium">{analyticsData.time_metrics.efficiency_score}%</span>
+                          </div>
+                          <Progress 
+                            value={analyticsData.time_metrics.efficiency_score} 
+                            className={`h-3 ${
+                              analyticsData.time_metrics.efficiency_score >= 80 ? 'bg-green-100' :
+                              analyticsData.time_metrics.efficiency_score >= 60 ? 'bg-amber-100' : 'bg-red-100'
+                            }`}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium">Time Distribution</h4>
+                          <div className="grid grid-cols-3 gap-2">
+                            {analyticsData.time_metrics.time_distribution.map((item, idx) => (
+                              <div key={idx} className="bg-slate-50 p-3 rounded-lg text-center">
+                                <div className="text-lg font-semibold" style={{ color: item.color }}>{item.hours}h</div>
+                                <div className="text-xs text-slate-500">{item.activity}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="bg-slate-50 p-3 rounded-md">
+                          <h4 className="text-sm font-medium mb-2">Recommendations</h4>
+                          <ul className="text-xs text-slate-700 space-y-1 pl-4 list-disc">
+                            <li>Increase study time for weaker subjects</li>
+                            <li>Take regular short breaks for better retention</li>
+                            <li>Use the Pomodoro technique for increased focus</li>
+                            <li>Practice more questions in weak areas</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </>
             ) : (
               <div className="bg-yellow-50 p-8 rounded-lg text-yellow-800 text-center">

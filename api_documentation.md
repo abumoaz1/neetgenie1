@@ -376,7 +376,69 @@ Retrieves questions, optionally filtered by test ID.
 - **URL**: `/questions`
 - **Method**: `GET`
 - **Query Parameters**: `test_id` (optional)
-- **Authentication Required**: No
+- **Authentication Required**: Yes
+- **Success Response**:
+  - **Code**: 200 OK
+  - **Content**:
+    ```json
+    {
+      "questions": [
+        {
+          "id": 1,
+          "test_id": 1,
+          "question_title": "What is the chemical symbol for water?",
+          "option1": "H2O",
+          "option2": "CO2",
+          "option3": "NaCl",
+          "option4": "O2",
+          "category": "Chemistry",
+          "difficulty_level": "Easy"
+        }
+      ]
+    }
+    ```
+- **Security Note**: For test integrity, correct answers (`right_answer`) and explanations are not included in public question endpoints.
+- **Error Responses**:
+  - **Code**: 401 Unauthorized - Not authenticated
+
+### Get Question by ID
+
+Retrieves a specific question by ID.
+
+- **URL**: `/questions/:question_id`
+- **Method**: `GET`
+- **Authentication Required**: Yes
+- **Success Response**:
+  - **Code**: 200 OK
+  - **Content**:
+    ```json
+    {
+      "question": {
+        "id": 1,
+        "test_id": 1,
+        "question_title": "What is the chemical symbol for water?",
+        "option1": "H2O",
+        "option2": "CO2",
+        "option3": "NaCl",
+        "option4": "O2",
+        "category": "Chemistry",
+        "difficulty_level": "Easy"
+      }
+    }
+    ```
+- **Security Note**: For test integrity, correct answers (`right_answer`) and explanations are not included in public question endpoints.
+- **Error Responses**:
+  - **Code**: 401 Unauthorized - Not authenticated
+  - **Code**: 404 Not Found - Question not found
+
+### Get Questions (Teacher/Admin)
+
+Retrieves questions including correct answers (teacher or admin only).
+
+- **URL**: `/questions/admin`
+- **Method**: `GET`
+- **Query Parameters**: `test_id` (optional)
+- **Authentication Required**: Yes (Teacher or Admin only)
 - **Success Response**:
   - **Code**: 200 OK
   - **Content**:
@@ -399,14 +461,17 @@ Retrieves questions, optionally filtered by test ID.
       ]
     }
     ```
+- **Error Responses**:
+  - **Code**: 401 Unauthorized - Not authenticated
+  - **Code**: 403 Forbidden - Not a teacher or admin
 
-### Get Question by ID
+### Get Question by ID (Teacher/Admin)
 
-Retrieves a specific question by ID.
+Retrieves a specific question by ID including correct answer (teacher or admin only).
 
-- **URL**: `/questions/:question_id`
+- **URL**: `/questions/admin/:question_id`
 - **Method**: `GET`
-- **Authentication Required**: No
+- **Authentication Required**: Yes (Teacher or Admin only)
 - **Success Response**:
   - **Code**: 200 OK
   - **Content**:
@@ -428,6 +493,8 @@ Retrieves a specific question by ID.
     }
     ```
 - **Error Responses**:
+  - **Code**: 401 Unauthorized - Not authenticated
+  - **Code**: 403 Forbidden - Not a teacher or admin
   - **Code**: 404 Not Found - Question not found
 
 ### Update Question
@@ -748,6 +815,7 @@ Retrieves comprehensive history for the authenticated user, including test attem
       "study_materials": []
     }
     ```
+- **Security Note**: To maintain test integrity, the correct answer values (`correct_option`) are never revealed to students in this endpoint, even for completed tests. Only whether a response was correct (`is_correct`) is shown for submitted attempts.
 - **Error Responses**:
   - **Code**: 401 Unauthorized - Not authenticated
   - **Code**: 404 Not Found - User not found
@@ -811,12 +879,14 @@ Retrieves comprehensive history for a specific user (admin/teacher only).
           "selected_option": 1,
           "is_correct": true,
           "submitted_at": "2023-01-01T12:30:00Z",
+          "correct_option": 1,
           "explanation": "Water is H2O - two hydrogen atoms bonded to one oxygen atom.",
           "attempt_id": 1
         }
       ]
     }
     ```
+- **Security Note**: For admin and teacher users, correct answer information and explanations are provided, but only for responses from submitted attempts to enable proper assessment and monitoring.
 - **Error Responses**:
   - **Code**: 401 Unauthorized - Not authenticated
   - **Code**: 403 Forbidden - Not an admin or teacher
@@ -849,7 +919,7 @@ Retrieves questions for a specific attempt.
           "is_answered": true,
           "user_response": {
             "selected_option": 1,
-            "is_correct": true
+            "is_correct": null
           }
         }
       ],
@@ -898,24 +968,21 @@ Submits answers to questions in an attempt.
       "results": [
         {
           "question_id": 1,
-          "selected_option": 1,
-          "is_correct": true
+          "selected_option": 1
         },
         {
           "question_id": 2,
-          "selected_option": 3,
-          "is_correct": false
+          "selected_option": 3
         }
       ],
       "progress": {
         "questions_answered": 2,
         "total_questions": 20,
-        "correct_answers": 1,
-        "current_score": 5,
         "completion_percentage": 10
       }
     }
     ```
+- **Security Note**: For test integrity, correctness of answers is never revealed during an active test attempt. Correctness information is only available after the test is submitted.
 - **Error Responses**:
   - **Code**: 401 Unauthorized - Not authenticated
   - **Code**: 403 Forbidden - Not the attempt owner
@@ -968,7 +1035,7 @@ Retrieves responses for a specific attempt.
 - **URL**: `/attempts/:attempt_id/responses`
 - **Method**: `GET`
 - **Authentication Required**: Yes
-- **Success Response**:
+- **Success Response** (for submitted attempt):
   - **Code**: 200 OK
   - **Content**:
     ```json
@@ -981,7 +1048,8 @@ Retrieves responses for a specific attempt.
           "selected_option": 1,
           "is_correct": true,
           "submitted_at": "2023-01-01T12:30:00Z",
-          "correct_answer": 1
+          "correct_option": 1,
+          "explanation": "Water is H2O - two hydrogen atoms bonded to one oxygen atom."
         }
       ],
       "summary": {
@@ -992,9 +1060,31 @@ Retrieves responses for a specific attempt.
       }
     }
     ```
+  - **Content** (for in-progress attempt):
+    ```json
+    {
+      "responses": [
+        {
+          "id": 1,
+          "question_id": 1,
+          "question_title": "What is the chemical symbol for water?",
+          "selected_option": 1,
+          "is_correct": null,
+          "submitted_at": "2023-01-01T12:30:00Z"
+        }
+      ],
+      "summary": {
+        "total_responses": 1,
+        "correct_responses": null,
+        "total_questions": 20,
+        "completion_percentage": 5
+      }
+    }
+    ```
+- **Security Note**: For test integrity, correctness of answers and explanations are only revealed after the test is submitted.
 - **Error Responses**:
   - **Code**: 401 Unauthorized - Not authenticated
-  - **Code**: 403 Forbidden - Not the attempt owner or admin/teacher
+  - **Code**: 403 Forbidden - Not the attempt owner
   - **Code**: 404 Not Found - Attempt not found
 
 ## Study Materials
@@ -1752,4 +1842,269 @@ The system has three types of users:
 
 1. **Student**: Regular user who can take tests
 2. **Teacher**: Can view student attempts and results
-3. **Admin**: Full access to create/edit tests and questions, manage users 
+3. **Admin**: Full access to create/edit tests and questions, manage users
+
+## Study Plan API
+
+### Generate Study Plan
+
+Generates a customized study plan for the user based on their exam preparation needs using the Gemini AI and saves it to the database.
+
+- URL: `/api/study-plan/generate`
+- Method: `POST`
+- Authentication: Required (JWT Token)
+- Request Body:
+
+```json
+{
+  "exam_name": "NEET",
+  "days_left": 60,
+  "study_hours_per_day": 6,
+  "weak_topics": ["Organic Chemistry", "Thermodynamics", "Human Physiology"],
+  "strong_topics": ["Mechanics", "Cell Biology", "Inorganic Chemistry"]
+}
+```
+
+- Required fields:
+  - `exam_name`: Name of the exam the student is preparing for
+  - `days_left`: Number of days left until the exam
+  - `study_hours_per_day`: Hours available for studying each day
+
+- Optional fields:
+  - `weak_topics`: List of topics the student struggles with (needs more focus)
+  - `strong_topics`: List of topics the student is confident in (needs less focus)
+
+- Success Response:
+  - Code: `200 OK`
+  - Content:
+
+```json
+{
+  "study_plan": {
+    "overview": {
+      "exam_name": "NEET",
+      "duration_days": 60,
+      "study_hours_per_day": 6,
+      "weak_topics": ["Organic Chemistry", "Thermodynamics", "Human Physiology"],
+      "strong_topics": ["Mechanics", "Cell Biology", "Inorganic Chemistry"]
+    },
+    "key_principles": [
+      "Prioritize weak areas but don't neglect strong ones.",
+      "Regular revision is crucial for retention.",
+      "Practice questions are essential for understanding application."
+    ],
+    "resources": {
+      "essential": ["NCERT Textbooks (Physics, Chemistry, Biology)"],
+      "reference": ["HC Verma (Physics)", "OP Tandon (Organic Chemistry)"],
+      "practice": ["DC Pandey (Physics)", "MS Chauhan (Organic Chemistry)"],
+      "online": ["YouTube Channels (e.g., Physics Wallah, Vedantu NEET)"]
+    },
+    "daily_schedule": {
+      "morning": {
+        "duration": "2 hours",
+        "focus": "Theory review and concept building"
+      },
+      "midday": {
+        "duration": "2 hours",
+        "focus": "Problem-solving and application of concepts"
+      },
+      "afternoon": {
+        "duration": "2 hours",
+        "focus": "Revision, practice questions, and mock tests"
+      }
+    },
+    "weekly_plans": [
+      {
+        "week_number": 1,
+        "title": "Organic Chemistry Foundation",
+        "goal": "Understanding basic concepts of organic chemistry",
+        "days": [
+          {
+            "day_number": 1,
+            "subject": "Chemistry",
+            "topic": "Nomenclature and IUPAC naming",
+            "activities": "Read NCERT, OP Tandon. Practice 50+ questions from MS Chauhan.",
+            "resources": "NCERT, OP Tandon, MS Chauhan"
+          }
+        ]
+      }
+    ],
+    "important_notes": [
+      "Stick to the schedule as much as possible.",
+      "Take short breaks every hour to avoid burnout."
+    ],
+    "final_advice": "Stay consistent, focused, and confident."
+  },
+  "success": true,
+  "plan_id": 1
+}
+```
+
+- Error Responses:
+  - Code: `400 Bad Request`
+    - Content: `{"error": "Missing required fields: exam_name, days_left, study_hours_per_day"}`
+  - Code: `500 Internal Server Error`
+    - Content: `{"error": "Error generating study plan: [error details]"}`
+    - Content: `{"error": "Error parsing study plan JSON: [error details]"}`
+
+- Notes:
+  - The generated plan is returned as a structured JSON object for easy frontend rendering
+  - The plan includes an overview, key principles, resources, daily schedule, weekly plans, important notes, and final advice
+  - Each week in the plan has daily breakdowns with specific topics and activities
+  - More time is allocated to weak topics
+  - The plan is saved to the database and a `plan_id` is returned in the response
+  - Requires a valid Gemini API key set in the environment variables
+
+### Get User Study Plans
+
+Retrieves all study plans created by the current user.
+
+- URL: `/api/study-plan/plans`
+- Method: `GET`
+- Authentication: Required (JWT Token)
+- Success Response:
+  - Code: `200 OK`
+  - Content:
+
+```json
+{
+  "success": true,
+  "plans": [
+    {
+      "id": 1,
+      "user_id": 3,
+      "exam_name": "NEET",
+      "days_left": 60,
+      "study_hours_per_day": 6,
+      "weak_topics": ["Organic Chemistry", "Thermodynamics", "Human Physiology"],
+      "strong_topics": ["Mechanics", "Cell Biology", "Inorganic Chemistry"],
+      "plan_data": { /* Full study plan object */ },
+      "created_at": "2023-05-15T14:30:00Z"
+    },
+    {
+      "id": 2,
+      "user_id": 3,
+      "exam_name": "NEET",
+      "days_left": 45,
+      "study_hours_per_day": 8,
+      "weak_topics": ["Organic Chemistry", "Thermodynamics"],
+      "strong_topics": ["Mechanics", "Cell Biology"],
+      "plan_data": { /* Full study plan object */ },
+      "created_at": "2023-05-20T10:15:00Z"
+    }
+  ],
+  "count": 2
+}
+```
+
+- Error Response:
+  - Code: `401 Unauthorized`
+    - Content: `{"error": "Missing Authorization Header"}`
+
+### Get Study Plan by ID
+
+Retrieves a specific study plan by its ID.
+
+- URL: `/api/study-plan/plans/:plan_id`
+- Method: `GET`
+- Authentication: Required (JWT Token)
+- URL Parameters:
+  - `plan_id`: ID of the study plan to retrieve
+- Success Response:
+  - Code: `200 OK`
+  - Content:
+
+```json
+{
+  "success": true,
+  "plan": {
+    "id": 1,
+    "user_id": 3,
+    "exam_name": "NEET",
+    "days_left": 60,
+    "study_hours_per_day": 6,
+    "weak_topics": ["Organic Chemistry", "Thermodynamics", "Human Physiology"],
+    "strong_topics": ["Mechanics", "Cell Biology", "Inorganic Chemistry"],
+    "plan_data": { /* Full study plan object */ },
+    "created_at": "2023-05-15T14:30:00Z"
+  }
+}
+```
+
+- Error Responses:
+  - Code: `404 Not Found`
+    - Content: `{"error": "Study plan not found or unauthorized"}`
+  - Code: `401 Unauthorized`
+    - Content: `{"error": "Missing Authorization Header"}`
+
+### Delete Study Plan
+
+Deletes a specific study plan.
+
+- URL: `/api/study-plan/plans/:plan_id`
+- Method: `DELETE`
+- Authentication: Required (JWT Token)
+- URL Parameters:
+  - `plan_id`: ID of the study plan to delete
+- Success Response:
+  - Code: `200 OK`
+  - Content:
+
+```json
+{
+  "success": true,
+  "message": "Study plan deleted successfully"
+}
+```
+
+- Error Responses:
+  - Code: `404 Not Found`
+    - Content: `{"error": "Study plan not found or unauthorized"}`
+  - Code: `401 Unauthorized`
+    - Content: `{"error": "Missing Authorization Header"}`
+
+### Ask Assistant
+
+Sends a user's question or doubt to the AI assistant and returns a helpful response tailored for NEET preparation.
+
+- URL: `/api/study-plan/ask-assistant`
+- Method: `POST`
+- Authentication: Required (JWT Token)
+- Request Body:
+
+```json
+{
+  "query": "Can you explain the difference between mitosis and meiosis?",
+  "subject": "Biology"
+}
+```
+
+- Required fields:
+  - `query`: The user's question or doubt to be answered
+
+- Optional fields:
+  - `subject`: The subject context for the question (e.g., "Physics", "Chemistry", "Biology")
+
+- Success Response:
+  - Code: `200 OK`
+  - Content:
+
+```json
+{
+  "success": true,
+  "response": "Mitosis and meiosis are both types of cell division, but they serve different purposes...[complete response text]"
+}
+```
+
+- Error Responses:
+  - Code: `400 Bad Request`
+    - Content: `{"error": "Missing required field: query"}`
+  - Code: `500 Internal Server Error`
+    - Content: `{"error": "Error generating response: [error details]"}`
+
+- Notes:
+  - The AI assistant is configured to answer as an expert in NEET preparation
+  - Responses include accurate, factual information relevant to the NEET syllabus
+  - For numerical problems, step-by-step solutions are provided
+  - Conceptual explanations include underlying principles and examples
+  - Requires a valid Gemini API key set in the environment variables 

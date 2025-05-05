@@ -65,6 +65,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title, thumb
         </div>
       </DialogTrigger>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] w-[90vw] p-1 sm:p-2 overflow-hidden">
+        <DialogTitle className="sr-only">{title}</DialogTitle>
         <div className="relative w-full pt-[56.25%]">
           <iframe 
             className="absolute top-0 left-0 w-full h-full"
@@ -76,7 +77,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title, thumb
           ></iframe>
         </div>
         <DialogFooter className="p-3 flex items-center justify-between flex-row">
-          <DialogTitle className="text-base truncate">{title}</DialogTitle>
+          <div className="text-base truncate">{title}</div>
           <Button 
             size="sm" 
             variant="outline" 

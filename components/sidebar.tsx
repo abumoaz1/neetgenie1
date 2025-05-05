@@ -6,10 +6,12 @@ import {
   BarChart, 
   ChevronLeft, 
   ChevronRight,
-  Home
+  Home,
+  Bot,
+  CalendarCheck
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type SidebarItemProps = {
@@ -41,6 +43,7 @@ const SidebarItem = ({ icon, label, href, isCollapsed, isActive }: SidebarItemPr
 export default function Sidebar({ className }: { className?: string }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
@@ -62,7 +65,7 @@ export default function Sidebar({ className }: { className?: string }) {
         </button>
       </div>
       
-      <div className="flex-1 py-4 px-2 space-y-2">
+      <div className="flex-1 py-4 px-2 space-y-2 overflow-y-auto">
         <SidebarItem 
           icon={<Home size={20} />} 
           label="Dashboard" 
@@ -92,11 +95,27 @@ export default function Sidebar({ className }: { className?: string }) {
           isActive={pathname?.includes("/mock-tests")}
         />
         <SidebarItem 
+          icon={<CalendarCheck size={20} />} 
+          label="Study Plans" 
+          href="/study-plans" 
+          isCollapsed={isCollapsed}
+          isActive={pathname?.includes("/study-plans")}
+        />
+        <SidebarItem 
           icon={<BarChart size={20} />} 
           label="Analytics" 
           href="/dashboard/analytics" 
           isCollapsed={isCollapsed}
           isActive={pathname?.includes("/dashboard/analytics")}
+        />
+        
+        {/* AI Assistant Item - Now navigates to a dedicated page */}
+        <SidebarItem 
+          icon={<Bot size={20} />}
+          label="AI Assistant"
+          href="/assistant"
+          isCollapsed={isCollapsed}
+          isActive={pathname?.includes("/assistant")}
         />
       </div>
     </div>

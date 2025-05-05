@@ -16,6 +16,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ScrollToTop from "@/components/scroll-to-top";
 import { endpoints, apiRequest } from "@/lib/baseUrl";
+import { useTestAnswers } from "@/store/test-answers";
 
 interface Test {
   id: number;
@@ -35,7 +36,6 @@ interface Question {
   option2: string;
   option3: string;
   option4: string;
-  right_answer: number;
   category?: string;
   difficulty_level?: string;
   explanation?: string;
@@ -46,15 +46,25 @@ export default function ClientTestTakingPage({ testId }: { testId: string }) {
   const searchParams = useSearchParams();
   const attemptId = searchParams.get('attempt');
   
+  // Use our Zustand store
+  const { 
+    answers, 
+    markedQuestions, 
+    isSubmitting, 
+    error: answersError,
+    setAnswer, 
+    toggleMarkedQuestion, 
+    clearAnswers,
+    setSubmitting,
+    setError: setAnswersError
+  } = useTestAnswers();
+  
   const [test, setTest] = useState<Test | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [markedQuestions, setMarkedQuestions] = useState<number[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch test data and questions
   useEffect(() => {
@@ -79,7 +89,17 @@ export default function ClientTestTakingPage({ testId }: { testId: string }) {
         // Fetch questions for this test
         const questionsData = await apiRequest.get(`${endpoints.getQuestions}?test_id=${testId}`);
         const questionsList = questionsData.questions || questionsData || [];
-        setQuestions(questionsList);
+        
+        // Filter out any sensitive data (right_answer) from the questions
+        const safeQuestions = questionsList.map(q => {
+          const { right_answer, ...safeQuestion } = q;
+          return safeQuestion;
+        });
+        
+        setQuestions(safeQuestions);
+        
+        // Clear previous answers when loading a new test
+        clearAnswers();
         
         setError(null);
       } catch (err) {
@@ -93,7 +113,12 @@ export default function ClientTestTakingPage({ testId }: { testId: string }) {
     if (testId) {
       fetchTestData();
     }
-  }, [testId, attemptId, router]);
+    
+    // Clear answers when unmounting
+    return () => {
+      clearAnswers();
+    };
+  }, [testId, attemptId, router, clearAnswers]);
 
   // Timer effect
   useEffect(() => {
@@ -123,47 +148,67 @@ export default function ClientTestTakingPage({ testId }: { testId: string }) {
     ];
   };
 
-  // Handle answer selection
+  // Handle answer selection - now using Zustand store
   const handleAnswerSelect = (questionId: number, optionIndex: number) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: optionIndex
-    }));
-    
-    // Save answer to the server
-    saveAnswer(questionId, optionIndex);
+    setAnswer(questionId, optionIndex);
   };
 
-  // Save answer to the server
-  const saveAnswer = async (questionId: number, optionIndex: number) => {
-    try {
-      await apiRequest.post(endpoints.createResponse, {
-        attempt_id: Number(attemptId),
-        question_id: questionId,
-        selected_option: optionIndex + 1 // API uses 1-based indexing for options
-      });
-    } catch (err) {
-      console.error("Error saving answer:", err);
-      // We don't show an error message to the user here to avoid disrupting the test
-    }
-  };
-
-  // Mark/unmark question for review
+  // Mark/unmark question for review - now using Zustand store
   const handleMarkQuestion = (questionId: number) => {
-    setMarkedQuestions((prev) => {
-      if (prev.includes(questionId)) {
-        return prev.filter((id) => id !== questionId);
+    toggleMarkedQuestion(questionId);
+  };
+
+  // Submit all answers at once when the test is completed
+  const submitAllAnswers = async () => {
+    try {
+      // Create an array of answer submission promises
+      const answerSubmissions = Object.entries(answers).map(async ([questionId, optionIndex]) => {
+        try {
+          await apiRequest.post(endpoints.createResponse, {
+            attempt_id: Number(attemptId),
+            question_id: parseInt(questionId),
+            selected_option: optionIndex + 1 // API uses 1-based indexing for options
+          });
+          return { success: true, questionId };
+        } catch (err) {
+          console.error(`Error submitting answer for question ${questionId}:`, err);
+          return { success: false, questionId, error: err };
+        }
+      });
+      
+      // Execute all submissions in parallel
+      const results = await Promise.allSettled(answerSubmissions);
+      
+      // Check for any failed submissions
+      const failedSubmissions = results
+        .filter(result => result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success))
+        .map(result => {
+          if (result.status === 'rejected') {
+            return result.reason;
+          }
+          return (result.status === 'fulfilled') ? result.value.error : null;
+        });
+      
+      if (failedSubmissions.length > 0) {
+        console.warn(`${failedSubmissions.length} answers failed to submit, but continuing with test submission`);
       }
-      return [...prev, questionId];
-    });
+      
+      return true;
+    } catch (err) {
+      console.error("Error submitting answers:", err);
+      return false;
+    }
   };
 
   // Submit the test
   const handleSubmit = async () => {
     try {
-      setIsSubmitting(true);
+      setSubmitting(true);
       
-      // Submit the attempt as completed
+      // First submit all answers
+      await submitAllAnswers();
+      
+      // Then submit the attempt as completed
       await apiRequest.post(endpoints.submitAttempt(attemptId), {});
       
       // Navigate to results page
@@ -171,7 +216,7 @@ export default function ClientTestTakingPage({ testId }: { testId: string }) {
     } catch (err) {
       console.error("Error submitting test:", err);
       setError("Failed to submit test. Please try again.");
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 

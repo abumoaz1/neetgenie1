@@ -1,29 +1,34 @@
 import { useCallback } from 'react';
 import { useAIAssistant } from '@/store/ai-assistant';
 import { Message } from '@/types';
+import { endpoints, apiRequest } from '@/lib/baseUrl';
 
 export function useAIAssistantHook() {
   const { addMessage, setLoading, setError } = useAIAssistant();
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, subject?: string) => {
     try {
       // Add user message
       addMessage({ role: 'user', content });
       setLoading(true);
 
-      // TODO: Replace with actual API call
-      const response = await new Promise<Message>((resolve) => {
-        setTimeout(() => {
-          resolve({
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: "I'm here to help you with your NEET preparation. I can explain concepts, solve problems, and provide study tips. What specific topic would you like to discuss?",
-            timestamp: new Date()
-          });
-        }, 1000);
-      });
+      // Call the AI Assistant API
+      const requestData = {
+        query: content,
+        ...(subject && { subject })
+      };
 
-      addMessage({ role: 'assistant', content: response.content });
+      const response = await apiRequest.post(endpoints.askAssistant, requestData);
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to get response from AI assistant');
+      }
+
+      // Add the AI response to the messages
+      addMessage({ 
+        role: 'assistant', 
+        content: response.response 
+      });
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred');
       addMessage({
@@ -38,4 +43,4 @@ export function useAIAssistantHook() {
   return {
     sendMessage
   };
-} 
+}

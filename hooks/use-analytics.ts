@@ -112,6 +112,7 @@ export interface AnalyticsState {
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+  isAuthenticated: boolean | null;
 }
 
 export function useAnalytics(): AnalyticsState {
@@ -119,8 +120,33 @@ export function useAnalytics(): AnalyticsState {
   const [detailedAnalytics, setDetailedAnalytics] = useState<DetailedAnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token');
+        setIsAuthenticated(!!token);
+      }
+    };
+    
+    checkAuthStatus();
+    
+    // Listen for storage events (for multi-tab support)
+    window.addEventListener('storage', checkAuthStatus);
+    return () => {
+      window.removeEventListener('storage', checkAuthStatus);
+    };
+  }, []);
 
   const fetchAnalyticsData = async () => {
+    // Don't fetch if not authenticated
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -146,16 +172,23 @@ export function useAnalytics(): AnalyticsState {
     }
   };
 
-  // Initial fetch
+  // Only fetch data when authentication status is confirmed
   useEffect(() => {
-    fetchAnalyticsData();
-  }, []);
+    if (isAuthenticated) {
+      fetchAnalyticsData();
+    } else if (isAuthenticated === false) {
+      // If definitely not authenticated, stop loading
+      setIsLoading(false);
+    }
+    // We only run this effect when authentication state changes
+  }, [isAuthenticated]);
 
   return {
     basicAnalytics,
     detailedAnalytics,
     isLoading,
     error,
-    refetch: fetchAnalyticsData
+    refetch: fetchAnalyticsData,
+    isAuthenticated
   };
 }
