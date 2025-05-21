@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ProfileDropdown } from "@/components/profile-dropdown";
 
 export default function Navbar() {
   const router = useRouter();
@@ -112,21 +113,9 @@ export default function Navbar() {
             </Link>
           ))}
         </nav>
-        
-        <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-4">
           {isLoggedIn ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium">Hi, {userName || 'User'}</span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="hover:text-red-600 transition-colors flex gap-1 items-center"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
-            </div>
+            <ProfileDropdown />
           ) : (
             <>
               <Button variant="ghost" size="sm" className="hover:text-blue-600 transition-colors" asChild>
@@ -179,20 +168,32 @@ export default function Navbar() {
                     </SheetClose>
                   ))}
                 </nav>
-                <div className="flex flex-col w-full gap-3 mt-8">
-                  {isLoggedIn ? (
-                    <SheetClose asChild>
-                      <Button 
-                        variant="outline" 
-                        size="lg" 
-                        className="w-full transition-all duration-300 hover:border-red-200 hover:bg-red-50 hover:text-red-600 flex gap-2 items-center justify-center"
-                        onClick={handleLogout}
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Logout
-                      </Button>
-                    </SheetClose>
-                  ) : (
+                <div className="flex flex-col w-full gap-3 mt-8">                {isLoggedIn ? (
+                    <>
+                      <div className="flex items-center justify-center mb-4">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="h-16 w-16 rounded-full bg-blue-600 text-white text-xl flex items-center justify-center font-bold border-2 border-blue-200">
+                            {userName ? userName.split(' ').map(part => part[0]).join('').toUpperCase().substring(0, 2) : 'U'}
+                          </div>
+                          <div className="text-center">
+                            <div className="font-medium">{userName || 'User'}</div>
+                            <div className="text-xs text-muted-foreground capitalize">Student</div>
+                          </div>
+                        </div>
+                      </div>
+                      <SheetClose asChild>
+                        <Button 
+                          variant="outline" 
+                          size="lg" 
+                          className="w-full transition-all duration-300 hover:border-red-200 hover:bg-red-50 hover:text-red-600 flex gap-2 items-center justify-center"
+                          onClick={handleLogout}
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Logout
+                        </Button>
+                      </SheetClose>
+                    </>
+                  ): (
                     <>
                       <SheetClose asChild>
                         <Button variant="outline" size="lg" className="w-full transition-all duration-300 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" asChild>

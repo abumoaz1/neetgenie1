@@ -8,10 +8,10 @@ interface ResultsPageProps {
   };
 }
 
-export default function ResultsPage({ params }: ResultsPageProps) {
+export default async function ResultsPage({ params }: ResultsPageProps) {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <ClientResultsPage testId={params.id} />
     </Suspense>
   );
-} 
+}

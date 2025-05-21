@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { endpoints, apiRequest } from "@/lib/baseUrl";
+import { resetVerificationState } from "@/utils/verification-status";
+import { showApiError } from "@/utils/api-error";
+import { toast } from "sonner";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -71,7 +74,6 @@ export default function SignupPage() {
     setErrors(newErrors);
     return valid;
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -80,24 +82,33 @@ export default function SignupPage() {
       setApiError("");
       
       try {
+        // Reset any existing verification state to avoid conflicts
+        resetVerificationState();
+        
         const response = await apiRequest.post(endpoints.signup, {
           name: formData.name,
           email: formData.email,
           password: formData.password
         });
         
-        // Store the token in localStorage
-        localStorage.setItem('token', response.token);
+        // Store the user data exactly as returned by the backend
         localStorage.setItem('user', JSON.stringify(response.user));
         
-        router.push("/dashboard");
+        // Save the email specifically for verification purposes
+        localStorage.setItem('userEmail', formData.email);
+        
+        console.log("Account created, redirecting to verification page");
+          // Redirect to verification required page instead of dashboard
+        router.push("/verification-required");
       } catch (error) {
         console.error("Signup error:", error);
-        setApiError(
-          error instanceof Error 
-            ? error.message 
-            : "Failed to create account. Please try again."
+        const errorMessage = showApiError(
+          error, 
+          "Failed to create account. Please try again."
         );
+        
+        // Also set the error for inline display
+        setApiError(errorMessage);
       } finally {
         setIsLoading(false);
       }

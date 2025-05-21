@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Clock, Target, Brain, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useAnalytics } from "@/hooks/use-analytics";
 import ProtectedRoute from "@/components/protected-route";
 import { StudyPlanGenerator } from "@/components/study-plan-generator";
 import dynamic from "next/dynamic";
+import { syncVerificationStatus } from "@/utils/verification-status";
 
 // Use dynamic imports for chart components to ensure they only load client-side
 const SubjectBarChart = dynamic(

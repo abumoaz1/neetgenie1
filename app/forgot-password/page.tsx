@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { showApiError, showApiSuccess } from "@/utils/api-error";
+import { toast } from "sonner";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -16,8 +18,7 @@ export default function ForgotPasswordPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email.trim()) {
@@ -31,11 +32,25 @@ export default function ForgotPasswordPage() {
     setError("");
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { apiRequest } = await import("@/lib/baseUrl");
+      const response = await apiRequest.forgotPassword(email);
+        console.log("Password reset email sent:", response);
       setIsSuccess(true);
-    }, 1500);
+      
+      // Show success message
+      showApiSuccess("Password reset link sent to your email");
+      
+      // Store email for potential future use
+      localStorage.setItem('userEmail', email);
+    } catch (error) {
+      console.error("Failed to send password reset email:", error);
+      // Use our common API error handler utility
+      const errorMessage = showApiError(error, "Failed to send password reset email. Please try again later.");
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ChevronLeft, LogIn } from "lucide-react";
@@ -10,6 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { endpoints, apiRequest } from "@/lib/baseUrl";
+import { syncVerificationStatus, resetVerificationState } from "@/utils/verification-status";
+import { debugVerificationStatus } from "@/utils/debug-verification-status";
+import { updateUserInLocalStorage } from "@/utils/auth-utils";
+import { showApiError } from "@/utils/api-error";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,7 +29,35 @@ export default function LoginPage() {
   const [errors, setErrors] = useState({
     email: "",
     password: ""
-  });
+  });  // Check if user is already logged in
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      // Reset verification state for a clean start
+      resetVerificationState();
+      
+      const token = localStorage.getItem('token');
+      const userJson = localStorage.getItem('user');
+      
+      // If user has a token, check if they should be redirected
+      if (token && userJson) {
+        try {
+          const user = JSON.parse(userJson);
+          
+          // If user is verified, redirect to dashboard
+          // If not verified, redirect to verification page
+          if (user.is_verified) {
+            router.push('/dashboard');
+          } else {
+            router.push('/verification-required');
+          }
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+        }
+      }
+    };
+    
+    checkLoginStatus();
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -58,24 +91,24 @@ export default function LoginPage() {
 
     setErrors(newErrors);
     return valid;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  };  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
       setIsLoading(true);
       setApiError("");
-      
       try {
+        // Reset any existing verification state
+        resetVerificationState();
+        
+        // Attempt to login with the API
         const response = await apiRequest.post(endpoints.login, {
           email: formData.email,
           password: formData.password
         });
-        
-        // Store the token in localStorage
+          // Store token
         localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('userEmail', formData.email);
         
         // If user chose to be remembered, store the timestamp 
         if (formData.rememberMe) {
@@ -83,14 +116,48 @@ export default function LoginPage() {
             String(Date.now() + 30 * 24 * 60 * 60 * 1000)); // 30 days
         }
         
-        router.push("/dashboard");
-      } catch (error) {
+        // Debug the user verification status from backend
+        console.log("Backend response - user:", response.user);
+        console.log("Backend verification status:", response.user?.is_verified);
+          // Process the user object to ensure verification status is properly set
+        // According to the API docs, it could be either is_verified or email_verified
+        const isVerified = 
+          response.user?.is_verified === true || 
+          response.user?.email_verified === true;
+        
+        console.log("Backend verification fields:", { 
+          is_verified: response.user?.is_verified,
+          email_verified: response.user?.email_verified 
+        });
+        
+        // Create a user object with consistent verified status field
+        const userObj = {
+          ...response.user,
+          is_verified: isVerified,
+          email_verified: isVerified
+        };
+        
+        // Store the user data with properly handled verification status
+        localStorage.setItem('user', JSON.stringify(userObj));
+        
+        console.log("Stored user with verification status:", isVerified);
+        
+        // Route based on verification status
+        if (!isVerified) {
+          console.log("User NOT verified - redirecting to verification page");
+          router.push("/verification-required");
+        } else {
+          console.log("User IS verified - redirecting to dashboard");
+          router.push("/dashboard");
+        }      } catch (error) {
         console.error("Login error:", error);
-        setApiError(
-          error instanceof Error 
-            ? error.message 
-            : "Login failed. Please check your credentials and try again."
+        const errorMessage = showApiError(
+          error, 
+          "Login failed. Please check your credentials and try again."
         );
+        
+        // Also set the error for inline display
+        setApiError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -252,10 +319,28 @@ export default function LoginPage() {
                         <LogIn className="ml-2 h-4 w-4" />
                       </div>
                     )}
-                  </Button>
-                  {apiError && <p className="text-sm text-red-500 mt-2">{apiError}</p>}
+                  </Button>                  {apiError && <p className="text-sm text-red-500 mt-2">{apiError}</p>}
                 </div>
               </form>
+                {/* Email verification and account recovery links */}
+              <div className="mt-4 text-center text-sm">
+                <p className="text-slate-600">
+                  Need to verify your email?{" "}
+                  <Link href="/resend-verification" className="text-blue-600 hover:underline">
+                    Resend verification email
+                  </Link>
+                </p>
+                <p className="text-slate-600 mt-2">
+                  Having verification issues?{" "}
+                  <Link href="/direct-backend-verify" className="text-blue-600 hover:underline">
+                    Try direct verification
+                  </Link>
+                  {" or "}
+                  <Link href="/debug-verification" className="text-blue-600 hover:underline">
+                    Debug verification
+                  </Link>
+                </p>
+              </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4 px-6 py-4 bg-slate-50 border-t border-slate-100 rounded-b-lg">
               <div className="relative">
